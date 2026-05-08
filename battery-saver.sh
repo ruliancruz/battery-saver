@@ -102,9 +102,9 @@ doctor)
   fi
 
   if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
-    ok "~/.local/bin on PATH"
+    ok "$HOME/.local/bin on PATH"
   else
-    bad "~/.local/bin not on PATH"
+    bad "$HOME/.local/bin not on PATH"
   fi
 
   echo
