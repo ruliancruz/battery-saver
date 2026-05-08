@@ -119,11 +119,11 @@ For zsh use `~/.zshrc`.
 ## Usage
 
 ```sh
-battery-saver on          # Enable Custom 50/80 (battery longevity mode)
-battery-saver off         # Restore Adaptive mode (Dell default)
-battery-saver status      # Show current charge config + battery state
-battery-saver update      # git pull the latest version from upstream
-battery-saver uninstall   # Run the uninstaller (--yes to skip prompts)
+battery-saver on        # Enable Custom 50/80 (battery longevity mode)
+battery-saver off       # Restore Adaptive mode (Dell default)
+battery-saver status    # Show current charge config + battery state
+battery-saver update    # git pull the latest version from upstream
+battery-saver uninstall # Run the uninstaller (--yes to skip prompts)
 ```
 
 ### Typical workflow
@@ -217,17 +217,17 @@ to skip the prompts for non-interactive use.
 If you'd rather do it by hand:
 
 ```sh
-battery-saver off                       # restore Adaptive mode on the EC
-rm ~/.local/bin/battery-saver           # remove the symlink
-rm -rf ~/.local/share/battery-saver     # remove the clone
+battery-saver off                   # restore Adaptive mode on the EC
+rm ~/.local/bin/battery-saver       # remove the symlink
+rm -rf ~/.local/share/battery-saver # remove the clone
 ```
 
 If you also want to remove `libsmbios`:
 
 ```sh
-sudo apt remove libsmbios-bin     # apt
-sudo dnf remove smbios-utils-bin  # dnf
-sudo pacman -R libsmbios          # pacman
+sudo apt remove libsmbios-bin    # apt
+sudo dnf remove smbios-utils-bin # dnf
+sudo pacman -R libsmbios         # pacman
 ```
 
 The charge thresholds you configured live on the EC, not in any file. Once
