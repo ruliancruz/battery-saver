@@ -53,22 +53,8 @@ status)
   upower -i "$(upower -e | grep BAT)" | grep -E "state|percentage|energy-rate"
   ;;
 update)
-  TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main}"
-  echo "Fetching battery-saver..."
-  tmp=$(mktemp -d)
-  trap 'rm -rf "$tmp"' EXIT
-  curl -fsSL --max-time 60 "$TARBALL_URL" | tar xz -C "$tmp" --strip-components=1
-  sum() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
-  if [[ "$(sum "$tmp/battery-saver.sh")" == "$(sum "$INSTALL_DIR/battery-saver.sh")" &&
-    "$(sum "$tmp/uninstall.sh")" == "$(sum "$INSTALL_DIR/uninstall.sh")" &&
-    "$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" ]]; then
-    echo "Already up to date."
-  else
-    install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
-    install -m 755 "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
-    install -m 644 "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"
-    echo "Updated."
-  fi
+  INSTALL_URL="${INSTALL_URL:-https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh}"
+  exec bash -c "curl -fsSL --max-time 60 '$INSTALL_URL' | bash"
   ;;
 uninstall)
   shift
