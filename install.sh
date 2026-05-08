@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RAW_URL="https://raw.githubusercontent.com/ruliancruz/battery-saver/main"
+TARBALL_URL="https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main"
 INSTALL_DIR="$HOME/.local/share/battery-saver"
 BIN_DIR="$HOME/.local/bin"
 SYMLINK="$BIN_DIR/battery-saver"
@@ -35,17 +35,13 @@ else
 fi
 
 mkdir -p "$INSTALL_DIR"
-# Atomic write: download to .tmp, chmod, then mv.
-fetch() {
-  local f="$1" mode="$2"
-  echo "Downloading $f..."
-  curl -fsSL "$RAW_URL/$f" -o "$INSTALL_DIR/$f.tmp"
-  chmod "$mode" "$INSTALL_DIR/$f.tmp"
-  mv "$INSTALL_DIR/$f.tmp" "$INSTALL_DIR/$f"
-}
-fetch battery-saver.sh 755
-fetch uninstall.sh 755
-fetch LICENSE 644
+echo "Downloading battery-saver..."
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+curl -fsSL --max-time 60 "$TARBALL_URL" | tar xz -C "$tmp" --strip-components=1
+install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
+install -m 755 "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
+install -m 644 "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"
 green "Installed files to $INSTALL_DIR"
 
 mkdir -p "$BIN_DIR"
