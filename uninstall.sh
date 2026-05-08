@@ -13,10 +13,15 @@ green() { printf '\033[32m%s\033[0m\n' "$*"; }
 yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 
 confirm() {
-  local prompt="$1"
+  local prompt="$1" answer
   [[ $ASSUME_YES -eq 1 ]] && return 0
-  read -rp "$prompt [y/N] " answer
-  [[ "$answer" =~ ^[Yy]$ ]]
+  while true; do
+    read -rp "$prompt [y/n] " answer
+    case "$answer" in
+      y|Y) return 0 ;;
+      n|N) return 1 ;;
+    esac
+  done
 }
 
 if [[ $EUID -eq 0 ]]; then
