@@ -67,7 +67,8 @@ custom)
 status)
   require_ctl
   sudo "$CTL" --get-charging-cfg
-  upower -i "$(upower -e | grep BAT)" | grep -E "state|percentage|energy-rate"
+  upower -i "$(upower -e | grep BAT)" |
+    grep -E "(state|percentage|energy-rate|capacity|charge-cycles|energy-full):"
   ;;
 update)
   INSTALL_URL="${INSTALL_URL:-https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh}"
