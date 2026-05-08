@@ -5,6 +5,8 @@ TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/ruliancruz/battery-saver
 INSTALL_DIR="$HOME/.local/share/battery-saver"
 BIN_DIR="$HOME/.local/bin"
 SYMLINK="$BIN_DIR/battery-saver"
+BASH_COMP="$HOME/.local/share/bash-completion/completions/battery-saver"
+ZSH_COMP="$HOME/.local/share/zsh/site-functions/_battery-saver"
 
 red() { printf '\033[31m%s\033[0m\n' "$*"; }
 green() { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -44,17 +46,23 @@ sum() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
 
 if [[ "$(sum "$tmp/battery-saver.sh")" == "$(sum "$INSTALL_DIR/battery-saver.sh")" &&
 "$(sum "$tmp/uninstall.sh")" == "$(sum "$INSTALL_DIR/uninstall.sh")" &&
-"$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" ]]; then
+"$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" &&
+"$(sum "$tmp/completions/battery-saver.bash")" == "$(sum "$INSTALL_DIR/completions/battery-saver.bash")" &&
+"$(sum "$tmp/completions/_battery-saver")" == "$(sum "$INSTALL_DIR/completions/_battery-saver")" ]]; then
   green "Already up to date in $INSTALL_DIR"
 else
   install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
   install -m 755 "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
   install -m 644 "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"
+  install -D -m 644 "$tmp/completions/battery-saver.bash" "$INSTALL_DIR/completions/battery-saver.bash"
+  install -D -m 644 "$tmp/completions/_battery-saver" "$INSTALL_DIR/completions/_battery-saver"
   green "Installed files to $INSTALL_DIR"
 fi
 
-mkdir -p "$BIN_DIR"
+mkdir -p "$BIN_DIR" "$(dirname "$BASH_COMP")" "$(dirname "$ZSH_COMP")"
 ln -sf "$INSTALL_DIR/battery-saver.sh" "$SYMLINK"
+ln -sf "$INSTALL_DIR/completions/battery-saver.bash" "$BASH_COMP"
+ln -sf "$INSTALL_DIR/completions/_battery-saver" "$ZSH_COMP"
 green "Linked $SYMLINK -> $INSTALL_DIR/battery-saver.sh"
 
 case ":$PATH:" in

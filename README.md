@@ -120,6 +120,20 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 
 For zsh use `~/.zshrc`.
 
+### Shell completion
+
+Bash completion works automatically if you have the `bash-completion`
+package installed; the installer drops the file in
+`~/.local/share/bash-completion/completions/`.
+
+For zsh, add the user-level completion directory to `fpath` in `~/.zshrc`
+(once):
+
+```sh
+fpath=(~/.local/share/zsh/site-functions $fpath)
+autoload -U compinit && compinit
+```
+
 ## Usage
 
 ```sh

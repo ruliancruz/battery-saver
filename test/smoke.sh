@@ -5,6 +5,8 @@ REPO="${REPO:-/repo}"
 TESTER="${TESTER:-tester}"
 INSTALL_DIR="/home/$TESTER/.local/share/battery-saver"
 SYMLINK="/home/$TESTER/.local/bin/battery-saver"
+BASH_COMP="/home/$TESTER/.local/share/bash-completion/completions/battery-saver"
+ZSH_COMP="/home/$TESTER/.local/share/zsh/site-functions/_battery-saver"
 TARBALL="/tmp/battery-saver.tar.gz"
 
 red() { printf '\033[31mFAIL: %s\033[0m\n' "$*" >&2; exit 1; }
@@ -37,9 +39,13 @@ run_as_tester "$REPO/install.sh"
 [[ "$(stat -c '%a' "$INSTALL_DIR/battery-saver.sh")" == "755" ]] || red "battery-saver.sh mode"
 [[ "$(stat -c '%a' "$INSTALL_DIR/uninstall.sh")" == "755" ]] || red "uninstall.sh mode"
 [[ "$(stat -c '%a' "$INSTALL_DIR/LICENSE")" == "644" ]] || red "LICENSE mode"
+[[ -f "$INSTALL_DIR/completions/battery-saver.bash" ]] || red "bash completion missing"
+[[ -f "$INSTALL_DIR/completions/_battery-saver" ]] || red "zsh completion missing"
 [[ -L "$SYMLINK" ]] || red "symlink missing"
 [[ "$(readlink "$SYMLINK")" == "$INSTALL_DIR/battery-saver.sh" ]] || red "symlink target wrong"
-ok "files installed with correct modes and symlink"
+[[ -L "$BASH_COMP" ]] || red "bash completion symlink missing"
+[[ -L "$ZSH_COMP" ]] || red "zsh completion symlink missing"
+ok "files installed with correct modes and symlinks"
 
 echo "=== install (idempotent re-run) ==="
 out=$(run_as_tester "$REPO/install.sh")
@@ -51,6 +57,8 @@ echo "=== uninstall ==="
 run_as_tester "$INSTALL_DIR/uninstall.sh" --yes
 
 [[ -e "$SYMLINK" ]] && red "symlink should be gone"
+[[ -e "$BASH_COMP" ]] && red "bash completion symlink should be gone"
+[[ -e "$ZSH_COMP" ]] && red "zsh completion symlink should be gone"
 [[ -d "$INSTALL_DIR" ]] && red "install dir should be gone"
 ok "uninstall cleaned up"
 

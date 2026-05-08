@@ -4,6 +4,8 @@ set -euo pipefail
 INSTALL_DIR="$HOME/.local/share/battery-saver"
 BIN_DIR="$HOME/.local/bin"
 SYMLINK="$BIN_DIR/battery-saver"
+BASH_COMP="$HOME/.local/share/bash-completion/completions/battery-saver"
+ZSH_COMP="$HOME/.local/share/zsh/site-functions/_battery-saver"
 
 ASSUME_YES=0
 [[ "${1:-}" == "--yes" || "${1:-}" == "-y" ]] && ASSUME_YES=1
@@ -48,12 +50,14 @@ else
   yellow "smbios-battery-ctl not found; skipping mode restore."
 fi
 
-if [[ -L "$SYMLINK" ]]; then
-  rm -f "$SYMLINK"
-  green "Removed symlink $SYMLINK"
-elif [[ -e "$SYMLINK" ]]; then
-  yellow "$SYMLINK exists but isn't a symlink; leaving it alone."
-fi
+for link in "$SYMLINK" "$BASH_COMP" "$ZSH_COMP"; do
+  if [[ -L "$link" ]]; then
+    rm -f "$link"
+    green "Removed symlink $link"
+  elif [[ -e "$link" ]]; then
+    yellow "$link exists but isn't a symlink; leaving it alone."
+  fi
+done
 
 if [[ -d "$INSTALL_DIR" ]]; then
   if confirm "Remove $INSTALL_DIR?"; then

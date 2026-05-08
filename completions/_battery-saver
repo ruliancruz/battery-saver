@@ -1,0 +1,20 @@
+#compdef battery-saver
+
+_battery-saver() {
+  local -a commands
+  commands=(
+    'on:Enable Custom 50/80'
+    'off:Restore Adaptive mode'
+    'custom:Enable Custom mode with arbitrary thresholds'
+    'status:Show current charging configuration'
+    'doctor:Diagnose common environment issues'
+    'update:Re-download the latest scripts from upstream'
+    'uninstall:Run the uninstaller'
+  )
+  _arguments '1: :->cmd'
+  case $state in
+    cmd) _describe 'command' commands ;;
+  esac
+}
+
+_battery-saver "$@"
