@@ -21,6 +21,7 @@ if command -v smbios-battery-ctl >/dev/null ||
   green "libsmbios already installed."
 else
   echo "Installing libsmbios..."
+
   if command -v apt >/dev/null; then
     sudo apt install -y libsmbios-bin
   elif command -v dnf >/dev/null; then
@@ -40,9 +41,10 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL --max-time 60 "$TARBALL_URL" | tar xz -C "$tmp" --strip-components=1
 sum() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
+
 if [[ "$(sum "$tmp/battery-saver.sh")" == "$(sum "$INSTALL_DIR/battery-saver.sh")" &&
-  "$(sum "$tmp/uninstall.sh")" == "$(sum "$INSTALL_DIR/uninstall.sh")" &&
-  "$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" ]]; then
+"$(sum "$tmp/uninstall.sh")" == "$(sum "$INSTALL_DIR/uninstall.sh")" &&
+"$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" ]]; then
   green "Already up to date in $INSTALL_DIR"
 else
   install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"

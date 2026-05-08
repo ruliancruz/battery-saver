@@ -9,14 +9,16 @@ INSTALL_DIR=$(dirname "$SCRIPT_PATH")
 
 usage() {
   cat <<EOF
-Usage: battery-saver <command>
+Usage: battery-saver <command> [args]
 
 Commands:
-  on         Enable Custom $START/$STOP — battery charges only between $START%-$STOP%.
-  off        Restore Adaptive mode (Dell default, charges to ~100%).
-  status     Show current charging configuration.
-  update     Re-download the latest scripts from the upstream repo.
-  uninstall  Run the uninstaller (pass --yes to skip prompts).
+  on                  Enable Custom $START/$STOP — battery charges only between $START%-$STOP%.
+  off                 Restore Adaptive mode (Dell default, charges to ~100%).
+  custom START STOP   Enable Custom mode with arbitrary thresholds.
+                      START in [50,95], STOP in [55,100], STOP >= START+5.
+  status              Show current charging configuration.
+  update              Re-download the latest scripts from the upstream repo.
+  uninstall           Run the uninstaller (pass --yes to skip prompts).
 EOF
   exit 1
 }
@@ -45,6 +47,21 @@ off)
   require_ctl
   sudo "$CTL" --set-charging-mode=adaptive >/dev/null
   echo "Battery saver OFF — Adaptive mode restored."
+  sudo "$CTL" --get-charging-cfg
+  ;;
+custom)
+  require_ctl
+  [[ $# -eq 3 ]] || usage
+  START="$2"
+  STOP="$3"
+  if ! [[ "$START" =~ ^[0-9]+$ && "$STOP" =~ ^[0-9]+$ ]] ||
+    (( START < 50 || START > 95 || STOP < 55 || STOP > 100 || STOP < START + 5 )); then
+    echo "battery-saver: invalid interval $START/$STOP. START in [50,95], STOP in [55,100], STOP >= START+5." >&2
+    exit 1
+  fi
+  sudo "$CTL" --set-custom-charge-interval=$START $STOP >/dev/null
+  sudo "$CTL" --set-charging-mode=custom >/dev/null
+  echo "Battery saver ON — Custom $START/$STOP active."
   sudo "$CTL" --get-charging-cfg
   ;;
 status)
