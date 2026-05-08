@@ -29,7 +29,7 @@ one-word command.
 
 ### Quick install
 
-One command, handles everything (libsmbios, clone, symlink):
+One command, handles everything (libsmbios, files, symlinks, completions):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh | bash
@@ -85,24 +85,32 @@ The script handles both.
 
 #### 2. Download the runtime scripts
 
-Fetch the runtime files — the CLI, its uninstaller, and the LICENSE —
-into `~/.local/share/battery-saver/`, then symlink the CLI onto PATH.
+Fetch the runtime files — the CLI, its uninstaller, the LICENSE, and
+the shell completions — into `~/.local/share/battery-saver/`, then
+symlink the CLI onto PATH and the completions into their XDG locations.
 
 ```sh
-mkdir -p ~/.local/share/battery-saver ~/.local/bin
+SHARE=~/.local/share/battery-saver
+mkdir -p "$SHARE/completions" ~/.local/bin \
+  ~/.local/share/bash-completion/completions \
+  ~/.local/share/zsh/site-functions
 RAW=https://raw.githubusercontent.com/ruliancruz/battery-saver/main
-curl -fsSL "$RAW/battery-saver.sh" -o ~/.local/share/battery-saver/battery-saver.sh
-curl -fsSL "$RAW/uninstall.sh"     -o ~/.local/share/battery-saver/uninstall.sh
-curl -fsSL "$RAW/LICENSE"          -o ~/.local/share/battery-saver/LICENSE
-chmod +x ~/.local/share/battery-saver/*.sh
-ln -sf ~/.local/share/battery-saver/battery-saver.sh ~/.local/bin/battery-saver
+curl -fsSL "$RAW/battery-saver.sh"                  -o "$SHARE/battery-saver.sh"
+curl -fsSL "$RAW/uninstall.sh"                      -o "$SHARE/uninstall.sh"
+curl -fsSL "$RAW/LICENSE"                           -o "$SHARE/LICENSE"
+curl -fsSL "$RAW/completions/battery-saver.bash"    -o "$SHARE/completions/battery-saver.bash"
+curl -fsSL "$RAW/completions/_battery-saver"        -o "$SHARE/completions/_battery-saver"
+chmod +x "$SHARE"/*.sh
+ln -sf "$SHARE/battery-saver.sh"                  ~/.local/bin/battery-saver
+ln -sf "$SHARE/completions/battery-saver.bash"    ~/.local/share/bash-completion/completions/battery-saver
+ln -sf "$SHARE/completions/_battery-saver"        ~/.local/share/zsh/site-functions/_battery-saver
 ```
 
 `~/.local/share/` is the standard
 [XDG data directory](https://specifications.freedesktop.org/basedir-spec/latest/)
 for user-level application files; the symlink in `~/.local/bin/` is what
 makes `battery-saver` runnable as a command. To update later, run
-`battery-saver update` (it re-downloads both scripts).
+`battery-saver update` (it re-runs the installer).
 
 #### 3. Make sure `~/.local/bin` is on PATH
 
@@ -188,11 +196,11 @@ them with a different command.
 ## Verifying it worked
 
 ```sh
-sudo smbios-battery-ctl --get-charging-cfg
-# Expect: "Charging mode: custom" with interval (50, 80)
-
-upower -i "$(upower -e | grep BAT)"
-# When SoC ≥ 80% on AC, expect: state: not charging, energy-rate: 0 W
+battery-saver status
+# Expect: Charging mode: custom, interval (50, 80), and battery details
+# (state, percentage, energy-rate, capacity, charge-cycles, energy-full).
+# When SoC ≥ 80% on AC, state should be "not charging" or "pending-charge"
+# and energy-rate ~0 W.
 ```
 
 Seeing `state: not charging` while plugged in at 80% means it's working.
@@ -200,6 +208,10 @@ The EC has cut the charger and the laptop is drawing entirely from the AC
 adapter.
 
 ## Troubleshooting
+
+Run `battery-saver doctor` first — it checks libsmbios, upower, BIOS
+access, and PATH, and points you at whichever piece is broken. The
+sections below cover specific failure modes it doesn't catch.
 
 ### `smbios-battery-ctl: Charging mode: <something else>` after `battery-saver on`
 
@@ -237,9 +249,11 @@ to skip the prompts for non-interactive use.
 If you'd rather do it by hand:
 
 ```sh
-battery-saver off                   # restore Adaptive mode on the EC
-rm ~/.local/bin/battery-saver       # remove the symlink
-rm -rf ~/.local/share/battery-saver # remove the clone
+battery-saver off                                                     # restore Adaptive mode on the EC
+rm ~/.local/bin/battery-saver                                         # remove the CLI symlink
+rm ~/.local/share/bash-completion/completions/battery-saver           # remove the bash completion symlink
+rm ~/.local/share/zsh/site-functions/_battery-saver                   # remove the zsh completion symlink
+rm -rf ~/.local/share/battery-saver                                   # remove the install dir
 ```
 
 If you also want to remove `libsmbios`:
