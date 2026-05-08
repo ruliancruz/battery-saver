@@ -83,22 +83,26 @@ command -v smbios-battery-ctl
 Debian-family distros put it in `/usr/sbin`; Arch and Fedora use `/usr/bin`.
 The script handles both.
 
-#### 2. Clone and install the script
+#### 2. Download the runtime scripts
 
-Clone into `~/.local/share/` so the install doesn't depend on your dev
-checkout location, then symlink the script onto PATH.
+Fetch the runtime files — the CLI, its uninstaller, and the LICENSE —
+into `~/.local/share/battery-saver/`, then symlink the CLI onto PATH.
 
 ```sh
-git clone https://github.com/ruliancruz/battery-saver.git ~/.local/share/battery-saver
-mkdir -p ~/.local/bin
+mkdir -p ~/.local/share/battery-saver ~/.local/bin
+RAW=https://raw.githubusercontent.com/ruliancruz/battery-saver/main
+curl -fsSL "$RAW/battery-saver.sh" -o ~/.local/share/battery-saver/battery-saver.sh
+curl -fsSL "$RAW/uninstall.sh"     -o ~/.local/share/battery-saver/uninstall.sh
+curl -fsSL "$RAW/LICENSE"          -o ~/.local/share/battery-saver/LICENSE
+chmod +x ~/.local/share/battery-saver/*.sh
 ln -sf ~/.local/share/battery-saver/battery-saver.sh ~/.local/bin/battery-saver
 ```
 
 `~/.local/share/` is the standard
 [XDG data directory](https://specifications.freedesktop.org/basedir-spec/latest/)
 for user-level application files; the symlink in `~/.local/bin/` is what
-makes `battery-saver` runnable as a command. To update later, just
-`git pull` inside `~/.local/share/battery-saver`.
+makes `battery-saver` runnable as a command. To update later, run
+`battery-saver update` (it re-downloads both scripts).
 
 #### 3. Make sure `~/.local/bin` is on PATH
 
