@@ -29,7 +29,8 @@ one-word command.
 
 ### Quick install
 
-One command, handles everything (libsmbios, files, symlinks, completions):
+One command. Installs libsmbios if missing, drops the files into place,
+symlinks the CLI onto PATH, and wires up shell completions:
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh | bash
@@ -85,9 +86,9 @@ The script handles both.
 
 #### 2. Download the runtime scripts
 
-Fetch the runtime files — the CLI, its uninstaller, the LICENSE, and
-the shell completions — into `~/.local/share/battery-saver/`, then
-symlink the CLI onto PATH and the completions into their XDG locations.
+Drop the CLI, uninstaller, LICENSE, and completion files into
+`~/.local/share/battery-saver/`, then symlink the CLI to `~/.local/bin/`
+and each completion file to where bash and zsh look for them.
 
 ```sh
 SHARE=~/.local/share/battery-saver
@@ -197,10 +198,9 @@ them with a different command.
 
 ```sh
 battery-saver status
-# Expect: Charging mode: custom, interval (50, 80), and battery details
-# (state, percentage, energy-rate, capacity, charge-cycles, energy-full).
-# When SoC ≥ 80% on AC, state should be "not charging" or "pending-charge"
-# and energy-rate ~0 W.
+# Charging mode should read "custom" with interval (50, 80).
+# Plugged in at 80%, state will be "not charging" or "pending-charge"
+# with energy-rate near 0 W.
 ```
 
 Seeing `state: not charging` while plugged in at 80% means it's working.
@@ -209,9 +209,9 @@ adapter.
 
 ## Troubleshooting
 
-Run `battery-saver doctor` first — it checks libsmbios, upower, BIOS
-access, and PATH, and points you at whichever piece is broken. The
-sections below cover specific failure modes it doesn't catch.
+Start with `battery-saver doctor`. It sanity-checks libsmbios, upower,
+BIOS access, and PATH. If everything passes there, the sections below
+cover the specific failure modes worth knowing about.
 
 ### `smbios-battery-ctl: Charging mode: <something else>` after `battery-saver on`
 

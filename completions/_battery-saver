@@ -12,6 +12,7 @@ _battery-saver() {
     'uninstall:Run the uninstaller'
   )
   _arguments '1: :->cmd'
+
   case $state in
     cmd) _describe 'command' commands ;;
   esac
