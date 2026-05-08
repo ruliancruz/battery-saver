@@ -1,13 +1,9 @@
 #!/usr/bin/env bash
-# Toggle Dell charge thresholds (Custom 50/80 vs Adaptive).
-# Requires libsmbios. Uses sudo for EC writes.
-
 set -euo pipefail
 
 START=50
 STOP=80
 
-# Resolve the install directory (works whether invoked directly or via symlink).
 SCRIPT_PATH=$(readlink -f "$0")
 INSTALL_DIR=$(dirname "$SCRIPT_PATH")
 
@@ -19,7 +15,7 @@ Commands:
   on         Enable Custom $START/$STOP — battery charges only between $START%-$STOP%.
   off        Restore Adaptive mode (Dell default, charges to ~100%).
   status     Show current charging configuration.
-  update     Pull the latest version from the upstream repo.
+  update     Re-download the latest scripts from the upstream repo.
   uninstall  Run the uninstaller (pass --yes to skip prompts).
 EOF
   exit 1
@@ -57,13 +53,18 @@ status)
   upower -i "$(upower -e | grep BAT)" | grep -E "state|percentage|energy-rate"
   ;;
 update)
-  if [[ ! -d "$INSTALL_DIR/.git" ]]; then
-    echo "battery-saver: $INSTALL_DIR is not a git checkout; can't update." >&2
-    echo "Re-run the installer to repair: " \
-         "curl -fsSL https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh | bash" >&2
-    exit 1
-  fi
-  git -C "$INSTALL_DIR" pull --ff-only
+  RAW_URL="https://raw.githubusercontent.com/ruliancruz/battery-saver/main"
+  fetch() {
+    local f="$1" mode="$2"
+    echo "Fetching $f..."
+    curl -fsSL "$RAW_URL/$f" -o "$INSTALL_DIR/$f.tmp"
+    chmod "$mode" "$INSTALL_DIR/$f.tmp"
+    mv "$INSTALL_DIR/$f.tmp" "$INSTALL_DIR/$f"
+  }
+  fetch battery-saver.sh 755
+  fetch uninstall.sh 755
+  fetch LICENSE 644
+  echo "Updated."
   ;;
 uninstall)
   shift
