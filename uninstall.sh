@@ -17,6 +17,7 @@ yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 confirm() {
   local prompt="$1" answer
   [[ $ASSUME_YES -eq 1 ]] && return 0
+
   while true; do
     read -rp "$prompt [y/n] " answer
     case "$answer" in
@@ -38,9 +39,9 @@ if command -v smbios-battery-ctl >/dev/null ||
   [[ -x /usr/sbin/smbios-battery-ctl ]] ||
   [[ -x /usr/bin/smbios-battery-ctl ]]; then
   if confirm "Restore Adaptive charging mode (recommended)?"; then
-    CTL=$(command -v smbios-battery-ctl ||
-      ls /usr/sbin/smbios-battery-ctl /usr/bin/smbios-battery-ctl 2>/dev/null |
-      head -1)
+    CTL=$(command -v smbios-battery-ctl || true)
+    [[ -z "$CTL" && -x /usr/sbin/smbios-battery-ctl ]] && CTL=/usr/sbin/smbios-battery-ctl
+    [[ -z "$CTL" && -x /usr/bin/smbios-battery-ctl ]] && CTL=/usr/bin/smbios-battery-ctl
     sudo "$CTL" --set-charging-mode=adaptive >/dev/null
     green "Charging mode restored to Adaptive."
   else
