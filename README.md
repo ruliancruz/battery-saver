@@ -1,13 +1,18 @@
 # battery-saver
 
-A small CLI to toggle Dell laptop charge thresholds between **Custom 50/80**
-(battery longevity mode) and **Adaptive** (Dell default, charges to ~100%).
+Toggle Dell laptop charge thresholds between **Custom 50/80** (battery
+longevity mode) and **Adaptive** (Dell default, charges to ~100%).
 
-Holding a Li-ion cell at 100% accelerates calendar aging. Capping the upper
-charge limit to 80% (with a lower bound of 50% so the EC isn't constantly
-toggling) is one of the highest-impact things you can do for battery lifespan
-on a desk-bound laptop. This script is just a thin wrapper around Dell's
-`smbios-battery-ctl` to make that toggle a one-word command.
+Lithium-ion cells age faster when held at full charge. Capping the upper
+limit at 80%, with a 50% lower bound so the EC (Embedded Controller) isn't
+flipping on and off every few minutes, buys you a noticeable amount of
+extra battery life on a laptop that mostly sits on a desk. From
+[Battery University BU-808](https://batteryuniversity.com/article/bu-808-how-to-prolong-lithium-based-batteries):
+"every reduction in peak charge voltage of 0.10V/cell is said to double the
+cycle life."
+
+This script wraps Dell's `smbios-battery-ctl` so flipping the setting is a
+one-word command.
 
 ## Requirements
 
@@ -15,53 +20,110 @@ on a desk-bound laptop. This script is just a thin wrapper around Dell's
   Configuration token (Latitude, Precision, XPS, Vostro from ~2016 onward).
   Verified on a Dell Latitude 3440.
 - Linux with `sudo` access.
-- `libsmbios-bin` package (provides `smbios-battery-ctl`).
-- `upower` (for `status` output; usually already installed on desktop
-  Linux distributions).
-
-This script does **not** work on ThinkPad, ASUS, HP, Framework, etc. Those
-vendors expose charge thresholds through different mechanisms (see
-[Portability](#portability) below).
+- [`libsmbios`](https://github.com/dell/libsmbios) (provides the
+  `smbios-battery-ctl` binary).
+- `upower` (used by `battery-saver status`; preinstalled on most desktop
+  distros).
 
 ## Installation
 
+### Quick install
+
+One command, handles everything (libsmbios, clone, symlink):
+
 ```sh
-# 1. Install dependency
+curl -fsSL https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh | bash
+```
+
+If you'd rather inspect the script first (recommended for any
+`curl | bash`):
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh -o install.sh
+less install.sh
+bash install.sh
+```
+
+To update later, run `battery-saver update`. The installer is also
+idempotent if you'd rather re-run it instead.
+
+### Manual install
+
+If you prefer doing it by hand, follow the three steps below.
+
+#### 1. Install libsmbios
+
+Pick the line for your package manager.
+
+##### `apt`
+
+```sh
 sudo apt install -y libsmbios-bin
-
-# 2. Clone and install the script
-git clone <this-repo> ~/code/battery-saver
-mkdir -p ~/.local/bin
-ln -s ~/code/battery-saver/battery-saver ~/.local/bin/battery-saver
-
-# 3. Make sure ~/.local/bin is in PATH (most distros do this by default)
-echo $PATH | tr ':' '\n' | grep -q "$HOME/.local/bin" || \
-    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
 ```
 
-### Optional: passwordless toggling
-
-`smbios-battery-ctl` requires root to write to the embedded controller, so
-each `battery-saver` invocation prompts for `sudo`. To skip that prompt for
-this one command, install a narrow sudoers rule:
+##### `dnf`
 
 ```sh
-echo "$USER ALL=(root) NOPASSWD: /usr/sbin/smbios-battery-ctl" | \
-    sudo tee /etc/sudoers.d/battery-saver >/dev/null
-sudo chmod 0440 /etc/sudoers.d/battery-saver
-sudo visudo -c -f /etc/sudoers.d/battery-saver  # validate syntax
+sudo dnf install -y smbios-utils-bin
 ```
 
-This grants passwordless `sudo` for **only** `/usr/sbin/smbios-battery-ctl`.
-The tool can only manipulate Dell EC battery settings — it cannot be used as
-a general root escalation. Skip this step on shared/policy-managed machines.
+##### `pacman`
+
+```sh
+sudo pacman -S libsmbios
+```
+
+If none of these match, you can also build it from source:
+[dell/libsmbios on GitHub](https://github.com/dell/libsmbios).
+
+```sh
+command -v smbios-battery-ctl
+```
+
+Debian-family distros put it in `/usr/sbin`; Arch and Fedora use `/usr/bin`.
+The script handles both.
+
+#### 2. Clone and install the script
+
+Clone into `~/.local/share/` so the install doesn't depend on your dev
+checkout location, then symlink the script onto PATH.
+
+```sh
+git clone https://github.com/ruliancruz/battery-saver.git ~/.local/share/battery-saver
+mkdir -p ~/.local/bin
+ln -sf ~/.local/share/battery-saver/battery-saver.sh ~/.local/bin/battery-saver
+```
+
+`~/.local/share/` is the standard
+[XDG data directory](https://specifications.freedesktop.org/basedir-spec/latest/)
+for user-level application files; the symlink in `~/.local/bin/` is what
+makes `battery-saver` runnable as a command. To update later, just
+`git pull` inside `~/.local/share/battery-saver`.
+
+#### 3. Make sure `~/.local/bin` is on PATH
+
+Most distros add it for you. Check with:
+
+```sh
+command -v battery-saver
+```
+
+If nothing prints, add it. For bash:
+
+```sh
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+```
+
+For zsh use `~/.zshrc`.
 
 ## Usage
 
 ```sh
-battery-saver on       # Enable Custom 50/80 (battery longevity mode)
-battery-saver off      # Restore Adaptive mode (Dell default)
-battery-saver status   # Show current charge config + battery state
+battery-saver on          # Enable Custom 50/80 (battery longevity mode)
+battery-saver off         # Restore Adaptive mode (Dell default)
+battery-saver status      # Show current charge config + battery state
+battery-saver update      # git pull the latest version from upstream
+battery-saver uninstall   # Run the uninstaller (--yes to skip prompts)
 ```
 
 ### Typical workflow
@@ -74,37 +136,34 @@ battery-saver status   # Show current charge config + battery state
 
 ## How the 50/80 strategy works
 
-When `on`, the embedded controller (EC) enforces a hysteresis band:
+With `battery-saver on`, the
+[embedded controller](https://en.wikipedia.org/wiki/Embedded_controller)
+(EC) keeps the battery inside a hysteresis band:
 
-- Battery falls below **50%** → start charging.
-- Battery reaches **80%** → stop charging. Laptop runs from AC; the cell sits
-  electrically parked, no float voltage stress.
-- Brief unplugs that don't drop SoC below 50% will not trigger a recharge.
-  This is correct behavior, not a fault.
+- Below **50%** → start charging.
+- At **80%** → stop charging. Laptop runs from AC; the cell sits idle, not
+  held at float voltage.
+- A brief unplug that doesn't drop SoC under 50% won't trigger a recharge
+  on plug-in. That's correct, not a fault.
 
-The cell spends its life around 3.75–4.05 V per cell (Li-ion's happy zone)
-instead of being held at 4.20 V (full-charge stress).
+The cell spends its life around 3.75–4.05 V instead of being parked at
+4.20 V.
+[This matters because](https://batteryuniversity.com/article/bu-808b-what-causes-li-ion-to-die)
+above 4.10 V/cell, electrolyte oxidation attacks
+the cathode, and "the longer the battery stays in a high voltage, the
+faster the degradation occurs."
 
-Trade-off: you give up the top 20% as daily reserve. On a battery rated for
-54 Wh, that's ~11 Wh — typically 30–60 min of runtime. Override with
-`battery-saver off` when you need it.
+You give up the top 20% as everyday reserve. On a 54 Wh battery that's
+about 11 Wh, usually 30–60 minutes of runtime depending on workload. Run
+`battery-saver off` whenever you actually need the full range.
 
-## Portability
+The 50/80 idea applies to any Li-ion laptop battery. The Dell-specific part
+is how you enforce it: this script talks to Dell's BIOS/EC through
+`smbios-battery-ctl`.
 
-The **strategy** (50/80 hysteresis) is universal. The **implementation** is
-Dell-specific because each vendor exposes charge thresholds differently:
-
-| Vendor       | Mechanism                                                       |
-|--------------|-----------------------------------------------------------------|
-| Dell         | `smbios-battery-ctl` (this script)                              |
-| Lenovo       | `/sys/class/power_supply/BAT*/charge_{start,stop}_threshold`    |
-| ASUS         | `/sys/class/power_supply/BAT*/charge_control_end_threshold`     |
-| Framework    | `/sys/class/power_supply/BAT*/charge_control_end_threshold`     |
-| HP / Acer    | Vendor-specific BIOS setting; rarely runtime-toggleable         |
-
-For non-Dell hardware, configure the equivalent via TLP
-(`START_CHARGE_THRESH_BAT0` / `STOP_CHARGE_THRESH_BAT0` in `/etc/tlp.conf`)
-or write directly to the sysfs node.
+Other vendors expose charge thresholds through different paths
+(sysfs nodes, vendor tools, BIOS-only settings), so the same approach works on
+them with a different command.
 
 ## Verifying it worked
 
@@ -112,29 +171,68 @@ or write directly to the sysfs node.
 sudo smbios-battery-ctl --get-charging-cfg
 # Expect: "Charging mode: custom" with interval (50, 80)
 
-upower -i $(upower -e | grep BAT)
+upower -i "$(upower -e | grep BAT)"
 # When SoC ≥ 80% on AC, expect: state: not charging, energy-rate: 0 W
 ```
 
-`upower` reporting `state: not charging` while plugged in at exactly 80% is
-the desired steady state — the EC has stopped the charger and the laptop is
-running entirely from the AC adapter.
+Seeing `state: not charging` while plugged in at 80% means it's working.
+The EC has cut the charger and the laptop is drawing entirely from the AC
+adapter.
 
 ## Troubleshooting
 
-**`smbios-battery-ctl: Charging mode: <something else>` after `battery-saver on`**
-The set-mode call may have failed silently. Re-run with verbose output:
-`sudo smbios-battery-ctl -v --set-charging-mode=custom`. Some BIOS revisions
-require a SETUP password — pass `--password=<pwd>` to the tool.
+### `smbios-battery-ctl: Charging mode: <something else>` after `battery-saver on`
 
-**Battery sits at 76% after a brief unplug, won't recharge**
+The set-mode call may have failed silently.
+
+Re-run with verbose output: `sudo smbios-battery-ctl -v --set-charging-mode=custom`.
+
+Some BIOS revisions require a SETUP password; pass `--password=<pwd>` to
+the tool.
+
+### Battery sits at 51~79% after a brief unplug, won't recharge
+
 Working as intended. Charging only resumes below the 50% start threshold.
 Run `battery-saver off` if you need to top up immediately.
 
-**Fuel gauge drifts (reported % feels inaccurate after months)**
-Run `battery-saver off`, complete one full charge → discharge → charge cycle,
-then `battery-saver on`. Recalibrates the gauge.
+### Fuel gauge drifts (reported % feels inaccurate after months)
+
+Run `battery-saver off`, complete one full discharge → charge cycle, then
+`battery-saver on`. That recalibrates the gauge.
+
+## Uninstall
+
+### Quick uninstall
+
+```sh
+battery-saver uninstall
+```
+
+The uninstaller prompts before each destructive step (restoring Adaptive
+mode, removing the install directory, removing `libsmbios`). Pass `--yes`
+to skip the prompts for non-interactive use.
+
+### Manual uninstall
+
+If you'd rather do it by hand:
+
+```sh
+battery-saver off                       # restore Adaptive mode on the EC
+rm ~/.local/bin/battery-saver           # remove the symlink
+rm -rf ~/.local/share/battery-saver     # remove the clone
+```
+
+If you also want to remove `libsmbios`:
+
+```sh
+sudo apt remove libsmbios-bin     # apt
+sudo dnf remove smbios-utils-bin  # dnf
+sudo pacman -R libsmbios          # pacman
+```
+
+The charge thresholds you configured live on the EC, not in any file. Once
+Adaptive mode is restored, no laptop-side state is left behind.
 
 ## License
 
-MIT
+[MIT](LICENSE)
