@@ -127,6 +127,7 @@ battery-saver on               # Enable Custom 50/80 (battery longevity mode)
 battery-saver off              # Restore Adaptive mode (Dell default)
 battery-saver custom 60 90     # Enable Custom mode with arbitrary thresholds
 battery-saver status           # Show current charge config + battery state
+battery-saver doctor           # Diagnose common environment issues
 battery-saver update           # git pull the latest version from upstream
 battery-saver uninstall        # Run the uninstaller (--yes to skip prompts)
 ```

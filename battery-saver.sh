@@ -17,6 +17,7 @@ Commands:
   custom START STOP   Enable Custom mode with arbitrary thresholds.
                       START in [50,95], STOP in [55,100], STOP >= START+5.
   status              Show current charging configuration.
+  doctor              Diagnose common environment issues.
   update              Re-download the latest scripts from the upstream repo.
   uninstall           Run the uninstaller (pass --yes to skip prompts).
 EOF
@@ -69,6 +70,50 @@ status)
   sudo "$CTL" --get-charging-cfg
   upower -i "$(upower -e | grep BAT)" |
     grep -E "(state|percentage|energy-rate|capacity|charge-cycles|energy-full):"
+  ;;
+doctor)
+  fail=0
+  ok() { printf '  \033[32mOK\033[0m   %s\n' "$1"; }
+  bad() {
+    printf '  \033[31mFAIL\033[0m %s\n' "$1"
+    fail=$((fail + 1))
+  }
+
+  CTL=$(command -v smbios-battery-ctl || true)
+  [[ -z "$CTL" && -x /usr/sbin/smbios-battery-ctl ]] && CTL=/usr/sbin/smbios-battery-ctl
+  [[ -z "$CTL" && -x /usr/bin/smbios-battery-ctl ]] && CTL=/usr/bin/smbios-battery-ctl
+
+  if [[ -n "$CTL" ]]; then
+    ok "libsmbios installed ($CTL)"
+  else
+    bad "libsmbios not installed"
+  fi
+
+  if command -v upower >/dev/null; then
+    ok "upower installed"
+  else
+    bad "upower not installed (used by status)"
+  fi
+
+  if [[ -n "$CTL" ]] && sudo "$CTL" --get-charging-cfg >/dev/null 2>&1; then
+    ok "BIOS exposes charging config"
+  else
+    bad "BIOS does not expose charging config (try: sudo $CTL --get-charging-cfg)"
+  fi
+
+  if [[ ":$PATH:" == *":$HOME/.local/bin:"* ]]; then
+    ok "~/.local/bin on PATH"
+  else
+    bad "~/.local/bin not on PATH"
+  fi
+
+  echo
+  if [[ $fail -eq 0 ]]; then
+    echo "All checks passed."
+  else
+    echo "$fail check(s) failed."
+    exit 1
+  fi
   ;;
 update)
   INSTALL_URL="${INSTALL_URL:-https://raw.githubusercontent.com/ruliancruz/battery-saver/main/install.sh}"
