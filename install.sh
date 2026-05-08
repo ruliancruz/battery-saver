@@ -39,10 +39,16 @@ echo "Downloading battery-saver..."
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 curl -fsSL --max-time 60 "$TARBALL_URL" | tar xz -C "$tmp" --strip-components=1
-install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
-install -m 755 "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
-install -m 644 "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"
-green "Installed files to $INSTALL_DIR"
+if cmp -s "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh" &&
+  cmp -s "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh" &&
+  cmp -s "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"; then
+  green "Already up to date in $INSTALL_DIR"
+else
+  install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
+  install -m 755 "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh"
+  install -m 644 "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"
+  green "Installed files to $INSTALL_DIR"
+fi
 
 mkdir -p "$BIN_DIR"
 ln -sf "$INSTALL_DIR/battery-saver.sh" "$SYMLINK"
