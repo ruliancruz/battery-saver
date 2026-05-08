@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Smoke test for install.sh and uninstall.sh. Runs in a clean container with
-# a mocked smbios-battery-ctl. Expects $REPO to point at the working tree.
 set -euo pipefail
 
 REPO="${REPO:-/repo}"
@@ -12,8 +10,6 @@ TARBALL="/tmp/battery-saver.tar.gz"
 red() { printf '\033[31mFAIL: %s\033[0m\n' "$*" >&2; exit 1; }
 ok() { printf '\033[32mPASS: %s\033[0m\n' "$*"; }
 
-# Mock smbios-battery-ctl so install.sh's check passes and uninstall.sh's
-# sudo invocation succeeds without real Dell hardware.
 cat >/usr/local/bin/smbios-battery-ctl <<'EOF'
 #!/usr/bin/env bash
 echo "mock smbios-battery-ctl: $*" >>/tmp/smbios.log

@@ -58,9 +58,10 @@ update)
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' EXIT
   curl -fsSL --max-time 60 "$TARBALL_URL" | tar xz -C "$tmp" --strip-components=1
-  if cmp -s "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh" &&
-    cmp -s "$tmp/uninstall.sh" "$INSTALL_DIR/uninstall.sh" &&
-    cmp -s "$tmp/LICENSE" "$INSTALL_DIR/LICENSE"; then
+  sum() { sha256sum "$1" 2>/dev/null | cut -d' ' -f1; }
+  if [[ "$(sum "$tmp/battery-saver.sh")" == "$(sum "$INSTALL_DIR/battery-saver.sh")" &&
+    "$(sum "$tmp/uninstall.sh")" == "$(sum "$INSTALL_DIR/uninstall.sh")" &&
+    "$(sum "$tmp/LICENSE")" == "$(sum "$INSTALL_DIR/LICENSE")" ]]; then
     echo "Already up to date."
   else
     install -m 755 "$tmp/battery-saver.sh" "$INSTALL_DIR/battery-saver.sh"
