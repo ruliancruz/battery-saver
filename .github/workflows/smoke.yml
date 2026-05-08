@@ -1,0 +1,42 @@
+name: smoke
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+            setup: |
+              export DEBIAN_FRONTEND=noninteractive
+              apt-get update -qq
+              apt-get install -y -qq bash curl tar sudo ca-certificates >/dev/null
+          - distro: fedora
+            image: fedora:41
+            setup: |
+              dnf install -y -q bash curl tar sudo >/dev/null
+          - distro: arch
+            image: archlinux:latest
+            setup: |
+              pacman -Sy --noconfirm --quiet bash curl tar sudo >/dev/null
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: smoke (${{ matrix.distro }})
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" -e DISTRO=${{ matrix.distro }} ${{ matrix.image }} bash -c '
+            set -euo pipefail
+            ${{ matrix.setup }}
+            useradd -m -s /bin/bash tester
+            echo "tester ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/tester
+            chmod 440 /etc/sudoers.d/tester
+            bash /repo/test/smoke.sh
+          '

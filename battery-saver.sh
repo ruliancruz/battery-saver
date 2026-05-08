@@ -53,7 +53,7 @@ status)
   upower -i "$(upower -e | grep BAT)" | grep -E "state|percentage|energy-rate"
   ;;
 update)
-  TARBALL_URL="https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main"
+  TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main}"
   echo "Fetching battery-saver..."
   tmp=$(mktemp -d)
   trap 'rm -rf "$tmp"' EXIT

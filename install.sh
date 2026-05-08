@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARBALL_URL="https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main"
+TARBALL_URL="${TARBALL_URL:-https://codeload.github.com/ruliancruz/battery-saver/tar.gz/refs/heads/main}"
 INSTALL_DIR="$HOME/.local/share/battery-saver"
 BIN_DIR="$HOME/.local/bin"
 SYMLINK="$BIN_DIR/battery-saver"
